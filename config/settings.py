@@ -13,6 +13,9 @@ from pathlib import Path
 
 from configurations import Configuration, values
 import cloudinary
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
 
 class Common(Configuration):
     # Build paths inside the project like this: BASE_DIR / 'subdir'.

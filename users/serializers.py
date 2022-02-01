@@ -23,5 +23,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 
-
+class WeatherSerializer(serializers.Serializer):
+    city = serializers.CharField()
 

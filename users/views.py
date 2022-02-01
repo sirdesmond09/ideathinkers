@@ -1,3 +1,4 @@
+import os
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -7,12 +8,13 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.signals import user_logged_in
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
-from .serializers import UserSerializer
+from .serializers import UserSerializer, WeatherSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
 import cloudinary
 import cloudinary.uploader
+import requests
 
 User = get_user_model()
 
@@ -144,7 +146,7 @@ def user_detail(request):
 @swagger_auto_schema(method='post', request_body=openapi.Schema(
     type=openapi.TYPE_OBJECT, 
     properties={
-        'email': openapi.Schema(type=openapi.TYPE_STRING, description='user@email.com'),
+        'username': openapi.Schema(type=openapi.TYPE_STRING, description='string'),
         'password': openapi.Schema(type=openapi.TYPE_STRING, description='string'),
     }
 ))
@@ -196,3 +198,38 @@ def user_login(request):
                 'error': 'Please provide a valid email and a password'
                 }
             return Response(data, status=status.HTTP_401_UNAUTHORIZED)
+        
+        
+@swagger_auto_schema(methods=['POST'], request_body=WeatherSerializer())
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])      
+def weather(request):
+    serializer = WeatherSerializer(data=request.data)
+    if serializer.is_valid():
+        city = serializer.validated_data['city']
+        
+        key=os.getenv("WEATHER_SECRET")
+        URL = os.getenv("WEATHER_URL")
+        url = f"{URL}?key={key}&q={city}"
+
+        res = requests.get(url)
+        if res.status_code == 200:
+            response_data = res.json()
+            data = {
+                    'status'  : True,
+                    'message' : "Successful",
+                    "data": {
+                            "city": response_data['location']['name'],
+                            "country": response_data['location']['country'],
+                            "temp_celcius": response_data['current']['temp_c'],
+                            "condition" : response_data['current']['condition']['text'],
+                    }
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            data = {
+                'status'  : False,
+                'error': 'Unable to fetch weather data for the given city'
+                }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
