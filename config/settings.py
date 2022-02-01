@@ -221,7 +221,7 @@ class Staging(Common):
 
     DEBUG = False
     
-    ALLOWED_HOSTS=[]
+    ALLOWED_HOSTS=['ideathinkers.herokuapp.com']
 
 class Production(Staging):
     """
